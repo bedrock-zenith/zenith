@@ -1,6 +1,8 @@
 const std = @import("std");
 const Io = std.Io;
 
+const raw = @embedFile("__protocol__.json");
+
 const json_text =
     \\{ "name": "Zig", "version": 14 }
 ;
@@ -11,20 +13,14 @@ const Config = struct {
 };
 
 pub fn main(init: std.process.Init) !void {
-    var buffer: [4096]u8 = undefined;
+    var buffer: [16384]u8 = undefined;
     var file_writer = std.Io.File.stdout().writerStreaming(init.io, &buffer);
+    var interface = &file_writer.interface;
+    var scanner: std.json.Scanner = .initCompleteInput(init.gpa, raw);
+    defer scanner.deinit();
 
-    const st = comptime std.json.parseFromSliceLeaky(St, ct_allocator, "{\"foo\":67,\"bar\":false}", .{ .allocate = .alloc_if_needed }) catch unreachable;
-    std.log.info("{}", .{st});
-
-    var codegen: CodeGenWriter = .{
-        .writer = &file_writer.interface,
-    };
-    defer codegen.flush();
-
-    codegen.lf();
-    codegen.formatted("fn read({s}) void {{\n\n}}", .{"param: u8"});
-    codegen.lf();
+    try @import("transformer.zig").translate(&scanner, interface);
+    try interface.flush();
 }
 
 const CodeGenWriter = struct {
