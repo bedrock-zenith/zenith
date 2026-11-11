@@ -1,26 +1,15 @@
 const std = @import("std");
+const parser = @import("parser.zig");
 const Io = std.Io;
 
 const raw = @embedFile("__protocol__.json");
 
-const json_text =
-    \\{ "name": "Zig", "version": 14 }
-;
-
-const Config = struct {
-    host: []const u8,
-    port: u16,
-};
-
 pub fn main(init: std.process.Init) !void {
-    var buffer: [16384]u8 = undefined;
-    var file_writer = std.Io.File.stdout().writerStreaming(init.io, &buffer);
-    var interface = &file_writer.interface;
+    var p: parser.Parser = undefined;
     var scanner: std.json.Scanner = .initCompleteInput(init.gpa, raw);
     defer scanner.deinit();
 
-    try @import("transformer.zig").translate(&scanner, interface);
-    try interface.flush();
+    try p.parse(&scanner);
 }
 
 const CodeGenWriter = struct {
