@@ -41,6 +41,7 @@ pub fn build(b: *std.Build) void {
         b.installArtifact(exe);
         const run_step = b.step("run", "Run the app");
         const run_cmd = b.addRunArtifact(exe);
+        run_cmd.addPassthruArgs();
         run_step.dependOn(&run_cmd.step);
         run_cmd.step.dependOn(b.getInstallStep());
 
@@ -55,18 +56,21 @@ pub fn build(b: *std.Build) void {
     {
         // main codegen executable
         const exe = b.addExecutable(.{
-            .name = "codegen",
+            .name = "meta-gen",
             .root_module = b.createModule(.{
-                .root_source_file = b.path("src/codegen/main.zig"),
+                .root_source_file = b.path("src/meta/main.zig"),
                 .target = target,
                 .optimize = optimize,
                 .imports = &.{},
             }),
         });
         b.installArtifact(exe);
-        const run_step = b.step("codegen", "Generate protocol and other resources");
+        const run_step = b.step("generate", "Generate protocol and other resources");
         const run_cmd = b.addRunArtifact(exe);
+        run_cmd.addPassthruArgs();
+
         run_step.dependOn(&run_cmd.step);
+
         run_cmd.step.dependOn(b.getInstallStep());
 
         const exe_tests = b.addTest(.{
