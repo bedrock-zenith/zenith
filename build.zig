@@ -1,29 +1,31 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-    const server_module = b.addModule("zenith", .{
+fn module(comptime name: []const u8, b: *std.Build, target: std.Build.ResolvedTarget, test_step: *std.Build.Step) *std.Build.Module {
+    const m = b.addModule(name, .{
         // The root source file is the "entry point" of this module. Users of
         // this module will only be able to access public declarations contained
         // in this file, which means that if you have declarations that you
         // intend to expose to consumers that were defined in other files part
         // of this module, you will have to make sure to re-export them from
         // the root file.
-        .root_source_file = b.path("src/zenith/root.zig"),
+        .root_source_file = b.path("src/" ++ name ++ "/root.zig"),
         // Later on we'll use this module as the root module of a test executable
         // which requires us to specify a target.
         .target = target,
     });
 
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = m })).step);
+
+    return m;
+}
+
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
     const test_step = b.step("test", "Run tests");
-    const mod_tests = b.addTest(.{
-        .root_module = server_module,
-    });
-
-    const run_mod_tests = b.addRunArtifact(mod_tests);
-
-    test_step.dependOn(&run_mod_tests.step);
+    const zenith = module("zenith", b, target, test_step);
+    const web_rtc = module("web-rtc", b, target, test_step);
 
     {
         // main executable
@@ -34,7 +36,8 @@ pub fn build(b: *std.Build) void {
                 .target = target,
                 .optimize = optimize,
                 .imports = &.{
-                    .{ .name = "zenith", .module = server_module },
+                    .{ .name = "zenith", .module = zenith },
+                    .{ .name = "web-rtc", .module = web_rtc },
                 },
             }),
         });
