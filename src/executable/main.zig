@@ -90,7 +90,7 @@ pub fn handle(web_server: *std.http.Server) !void {
         try std.json.Stringify.value(
             Motd{
                 .name = "Test Server",
-                .protocol = 2225,
+                .protocol = 155,
                 .version = "1.26.50",
                 .level = "Provider name",
                 .gameType = 0,
